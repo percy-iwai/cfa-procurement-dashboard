@@ -269,10 +269,11 @@ def main():
             custom_data=["bid_type"],
             labels={"fiscal_year": "年度", "amount_oku": "金額（億円）", "bid_type": "入札方式"},
             template=TEMPLATE,
-            title="年度別・入札方式別 契約金額　← クリックでドリルダウン",
+            title="年度別・入札方式別 契約金額",
         )
         fig1.update_layout(height=400, xaxis=dict(tickmode="linear", dtick=1))
         sel1 = st.plotly_chart(fig1, use_container_width=True, on_select="rerun", key="fig1")
+        st.caption("(クリックでドリルダウン)")
         pts1 = _pts(sel1)
         if pts1:
             pt = pts1[0]
@@ -403,10 +404,11 @@ def main():
             custom_data=["dept"],
             labels={"金額_oku": "金額（億円）", "dept": "担当部局"},
             template=TEMPLATE,
-            title="担当部局別 契約金額（降順）　← クリックでドリルダウン",
+            title="担当部局別 契約金額（降順）",
         )
         fig_dept.update_layout(height=400, yaxis=dict(autorange="reversed"))
         sel_dept = st.plotly_chart(fig_dept, use_container_width=True, on_select="rerun", key="fig_dept")
+        st.caption("(クリックでドリルダウン)")
         pts_dept = _pts(sel_dept)
         if pts_dept:
             pt = pts_dept[0]
@@ -446,7 +448,7 @@ def main():
             custom_data=["vendor_name"],
             labels={"金額_oku": "金額（億円）", "vendor_name": "ベンダー"},
             template=TEMPLATE,
-            title=f"ベンダー別 契約金額 TOP {top_n}　← クリックでドリルダウン",
+            title=f"ベンダー別 契約金額 TOP {top_n}",
         )
         fig_v.update_layout(
             height=max(350, top_n * 22),
@@ -454,6 +456,7 @@ def main():
             margin=dict(l=250),
         )
         sel_v = st.plotly_chart(fig_v, use_container_width=True, on_select="rerun", key="fig_v")
+        st.caption("(クリックでドリルダウン)")
         pts_v = _pts(sel_v)
         if pts_v:
             pt = pts_v[0]
@@ -482,7 +485,7 @@ def main():
                 color="bid_type",
                 color_discrete_map=BID_COLOR,
                 template=TEMPLATE,
-                title="入札方式別 金額構成比　← クリックでドリルダウン",
+                title="入札方式別 金額構成比",
                 hole=0.35,
             )
             fig_pie.update_traces(
@@ -491,6 +494,7 @@ def main():
             )
             fig_pie.update_layout(height=420, showlegend=False)
             sel_pie = st.plotly_chart(fig_pie, use_container_width=True, on_select="rerun", key="fig_pie")
+            st.caption("(クリックでドリルダウン)")
             pts_pie = _pts(sel_pie)
             if pts_pie:
                 pt = pts_pie[0]
@@ -512,7 +516,7 @@ def main():
                 color="bid_type",
                 color_discrete_map=BID_COLOR,
                 template=TEMPLATE,
-                title="入札方式別 件数構成比　← クリックでドリルダウン",
+                title="入札方式別 件数構成比",
                 hole=0.35,
             )
             fig_pie2.update_traces(
@@ -521,6 +525,7 @@ def main():
             )
             fig_pie2.update_layout(height=420, showlegend=False)
             sel_pie2 = st.plotly_chart(fig_pie2, use_container_width=True, on_select="rerun", key="fig_pie2")
+            st.caption("(クリックでドリルダウン)")
             pts_pie2 = _pts(sel_pie2)
             if pts_pie2:
                 pt = pts_pie2[0]
@@ -552,10 +557,11 @@ def main():
                 custom_data=["reason_short"],
                 labels={"金額_oku": "金額（億円）", "reason_short": "随意理由"},
                 template=TEMPLATE,
-                title="随意契約 根拠条文別 金額　← クリックでドリルダウン",
+                title="随意契約 根拠条文別 金額",
             )
             fig_r.update_layout(height=350, yaxis=dict(autorange="reversed"))
             sel_r = st.plotly_chart(fig_r, use_container_width=True, on_select="rerun", key="fig_r")
+            st.caption("(クリックでドリルダウン)")
             pts_r = _pts(sel_r)
             if pts_r:
                 pt = pts_r[0]
