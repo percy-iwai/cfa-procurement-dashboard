@@ -1,6 +1,6 @@
 """
 こども家庭庁（CFA）調達DB ダッシュボード
-データソース: data/db/cfa_procurement.db
+データソース: data/cfa_procurement.db
 対象期間: FY2023 (R5) 〜 FY2025 (R7、途中)
 """
 
@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(
@@ -33,6 +32,12 @@ st.markdown("""
   div[data-testid="metric-container"] label { font-size: 0.78rem; color: #a6b0cf; }
   .stTabs [data-baseweb="tab"] { font-size: 0.9rem; }
   .block-container { padding-top: 1.5rem; }
+  div[data-testid="stDialog"] > div {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -90,7 +95,6 @@ def load_df() -> pd.DataFrame:
     )
     df["year_month"] = df["contract_date_dt"].dt.to_period("M").astype(str).replace("NaT", pd.NA)
 
-    # 担当部局をcontract_deptから抽出
     def extract_dept(s):
         if not s:
             return "不明"
@@ -105,16 +109,18 @@ def load_df() -> pd.DataFrame:
 
 
 # ── ドリルダウン ──────────────────────────────────────────────────
-_COLS = {
-    "fiscal_year": "FY",
-    "bid_type": "入札方式",
-    "account_type": "会計区分",
-    "procurement_type": "調達種別",
-    "dept": "担当部局",
-    "contract_name": "件名",
-    "vendor_name": "ベンダー",
+_DRILLDOWN_COLS = {
+    "fiscal_year":     "FY",
+    "contract_date":   "締結日",
+    "bid_type":        "入札方式",
+    "account_type":    "会計区分",
+    "procurement_type":"調達種別",
+    "dept":            "担当部局",
+    "contract_name":   "件名",
+    "vendor_name":     "ベンダー",
     "contract_amount": "金額（円）",
-    "contract_date": "締結日",
+    "award_rate":      "落札率",
+    "zuii_reason":     "随意理由",
 }
 
 try:
@@ -126,25 +132,36 @@ except Exception:
 if _HAS_DIALOG:
     @st.dialog("ドリルダウン", width="large")
     def show_dd(df: pd.DataFrame, title: str, max_rows: int = 300):
-        cols = {k: v for k, v in _COLS.items() if k in df.columns}
-        disp = df.sort_values("contract_amount", ascending=False, na_position="last")[
-            list(cols.keys())
-        ].head(max_rows).rename(columns=cols)
+        cols = {k: v for k, v in _DRILLDOWN_COLS.items() if k in df.columns}
+        disp = (
+            df.sort_values("contract_amount", ascending=False, na_position="last")
+            [list(cols.keys())]
+            .head(max_rows)
+            .rename(columns=cols)
+        )
         if "金額（円）" in disp.columns:
             disp = disp.copy()
             disp["金額（円）"] = disp["金額（円）"].apply(
                 lambda x: f"{x:,.0f}" if pd.notna(x) else ""
             )
+        if "落札率" in disp.columns:
+            disp = disp.copy()
+            disp["落札率"] = disp["落札率"].apply(
+                lambda x: f"{x:.3f}" if pd.notna(x) else ""
+            )
         st.subheader(title)
-        st.dataframe(disp, use_container_width=True, height=560)
-        total = df["contract_amount"].sum(min_count=1)
-        st.write(f"**{len(df):,}件** / **{fmt_oku(total / 1e8)}**")
+        st.dataframe(disp, use_container_width=True, height=600)
+        total = df["contract_amount"].sum(min_count=1) or 0
+        st.caption(f"{len(df):,} 件 ／ {fmt_oku(total / 1e8)}")
 else:
     def show_dd(df: pd.DataFrame, title: str, max_rows: int = 300):
-        cols = {k: v for k, v in _COLS.items() if k in df.columns}
-        disp = df.sort_values("contract_amount", ascending=False, na_position="last")[
-            list(cols.keys())
-        ].head(max_rows).rename(columns=cols)
+        cols = {k: v for k, v in _DRILLDOWN_COLS.items() if k in df.columns}
+        disp = (
+            df.sort_values("contract_amount", ascending=False, na_position="last")
+            [list(cols.keys())]
+            .head(max_rows)
+            .rename(columns=cols)
+        )
         if "金額（円）" in disp.columns:
             disp = disp.copy()
             disp["金額（円）"] = disp["金額（円）"].apply(
@@ -152,6 +169,15 @@ else:
             )
         st.subheader(title)
         st.dataframe(disp, use_container_width=True)
+        total = df["contract_amount"].sum(min_count=1) or 0
+        st.caption(f"{len(df):,} 件 ／ {fmt_oku(total / 1e8)}")
+
+
+def _pts(sel) -> list:
+    """plotly_chart on_select の結果からポイントリストを安全に取得"""
+    if not sel:
+        return []
+    return sel.get("selection", {}).get("points", [])
 
 
 # ── メイン ──────────────────────────────────────────────────────
@@ -162,15 +188,13 @@ def main():
         st.markdown("""
 **データソース:** [こども家庭庁 契約締結状況](https://www.cfa.go.jp/procurement/proper-public-procurement/)
 
-| FY | ファイル | 件数 |
-|----|---------|------|
-| FY2023 (R5) | 随意契約・競争入札 × 一般会計・年金特別会計 + 公共工事 | 144件 |
-| FY2024 (R6) | 同上 | 205件 |
-| FY2025 (R7) | 同上（2025年12月時点、途中） | 208件 |
+| FY | 件数 |
+|----|------|
+| FY2023 (R5) | 144件 |
+| FY2024 (R6) | 205件 |
+| FY2025 (R7) | 208件（2025年12月時点・途中） |
 
-- 金額NULLは予定価格非公表（単価契約等）の案件
-- FY2025は年度途中のため集計対象から外すことも可
-- CFA設立: 2023年4月1日（令和5年）
+グラフの棒・セグメントをクリックすると該当契約一覧をモーダル表示します。
         """)
 
     df = load_df()
@@ -223,14 +247,18 @@ def main():
         "📊 年度トレンド", "🏢 担当部局", "🏭 ベンダー", "📋 入札方式", "🔍 契約一覧"
     ])
 
-    # ── Tab1: 年度トレンド ────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────
+    # Tab1: 年度トレンド
+    # ────────────────────────────────────────────────────────────
     with tab1:
+        # ── 年度 × 入札方式 積み上げ棒（クリックでドリルダウン） ──
         by_fy = (
             filt.groupby(["fiscal_year", "bid_type"])["contract_amount"]
             .sum()
             .reset_index()
         )
         by_fy["amount_oku"] = by_fy["contract_amount"] / 1e8
+
         fig1 = px.bar(
             by_fy,
             x="fiscal_year",
@@ -238,12 +266,24 @@ def main():
             color="bid_type",
             color_discrete_map=BID_COLOR,
             barmode="stack",
+            custom_data=["bid_type"],
             labels={"fiscal_year": "年度", "amount_oku": "金額（億円）", "bid_type": "入札方式"},
             template=TEMPLATE,
-            title="年度別・入札方式別 契約金額",
+            title="年度別・入札方式別 契約金額　← クリックでドリルダウン",
         )
         fig1.update_layout(height=400, xaxis=dict(tickmode="linear", dtick=1))
-        st.plotly_chart(fig1, use_container_width=True)
+        sel1 = st.plotly_chart(fig1, use_container_width=True, on_select="rerun", key="fig1")
+        pts1 = _pts(sel1)
+        if pts1:
+            pt = pts1[0]
+            fy_sel = int(pt["x"])
+            bt_sel = pt.get("customdata", [None])[0]
+            sub = filt[filt["fiscal_year"] == fy_sel]
+            if bt_sel:
+                sub = sub[sub["bid_type"] == bt_sel]
+                show_dd(sub, f"FY{fy_sel} ／ {bt_sel}")
+            else:
+                show_dd(sub, f"FY{fy_sel}")
 
         col1, col2 = st.columns(2)
 
@@ -260,12 +300,24 @@ def main():
                 color="bid_type",
                 color_discrete_map=BID_COLOR,
                 barmode="stack",
+                custom_data=["bid_type"],
                 labels={"fiscal_year": "年度", "count": "件数", "bid_type": "入札方式"},
                 template=TEMPLATE,
                 title="年度別・入札方式別 件数",
             )
             fig_cnt.update_layout(height=350, xaxis=dict(tickmode="linear", dtick=1))
-            st.plotly_chart(fig_cnt, use_container_width=True)
+            sel_cnt = st.plotly_chart(fig_cnt, use_container_width=True, on_select="rerun", key="fig_cnt")
+            pts_cnt = _pts(sel_cnt)
+            if pts_cnt:
+                pt = pts_cnt[0]
+                fy_sel = int(pt["x"])
+                bt_sel = pt.get("customdata", [None])[0]
+                sub = filt[filt["fiscal_year"] == fy_sel]
+                if bt_sel:
+                    sub = sub[sub["bid_type"] == bt_sel]
+                    show_dd(sub, f"FY{fy_sel} ／ {bt_sel}")
+                else:
+                    show_dd(sub, f"FY{fy_sel}")
 
         with col2:
             by_acc = (
@@ -280,12 +332,24 @@ def main():
                 y="amount_oku",
                 color="account_type",
                 barmode="stack",
+                custom_data=["account_type"],
                 labels={"fiscal_year": "年度", "amount_oku": "金額（億円）", "account_type": "会計"},
                 template=TEMPLATE,
                 title="年度別・会計区分別 金額",
             )
             fig_acc.update_layout(height=350, xaxis=dict(tickmode="linear", dtick=1))
-            st.plotly_chart(fig_acc, use_container_width=True)
+            sel_acc2 = st.plotly_chart(fig_acc, use_container_width=True, on_select="rerun", key="fig_acc")
+            pts_acc2 = _pts(sel_acc2)
+            if pts_acc2:
+                pt = pts_acc2[0]
+                fy_sel = int(pt["x"])
+                acc_sel = pt.get("customdata", [None])[0]
+                sub = filt[filt["fiscal_year"] == fy_sel]
+                if acc_sel:
+                    sub = sub[sub["account_type"] == acc_sel]
+                    show_dd(sub, f"FY{fy_sel} ／ {acc_sel}")
+                else:
+                    show_dd(sub, f"FY{fy_sel}")
 
         # 月次トレンド
         monthly = (
@@ -302,14 +366,24 @@ def main():
                 x="year_month",
                 y="amount_oku",
                 markers=True,
+                custom_data=["year_month"],
                 labels={"year_month": "年月", "amount_oku": "金額（億円）"},
                 template=TEMPLATE,
                 title="月次 契約金額推移",
             )
             fig_m.update_layout(height=320)
-            st.plotly_chart(fig_m, use_container_width=True)
+            sel_m = st.plotly_chart(fig_m, use_container_width=True, on_select="rerun", key="fig_m")
+            pts_m = _pts(sel_m)
+            if pts_m:
+                pt = pts_m[0]
+                ym_sel = pt.get("x") or (pt.get("customdata", [None])[0])
+                if ym_sel:
+                    sub = filt[filt["year_month"] == str(ym_sel)]
+                    show_dd(sub, f"月次: {ym_sel}")
 
-    # ── Tab2: 担当部局 ────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────
+    # Tab2: 担当部局
+    # ────────────────────────────────────────────────────────────
     with tab2:
         by_dept = (
             filt.groupby("dept")
@@ -326,22 +400,31 @@ def main():
             orientation="h",
             color="件数",
             color_continuous_scale="Tealrose",
+            custom_data=["dept"],
             labels={"金額_oku": "金額（億円）", "dept": "担当部局"},
             template=TEMPLATE,
-            title="担当部局別 契約金額（降順）",
+            title="担当部局別 契約金額（降順）　← クリックでドリルダウン",
         )
         fig_dept.update_layout(height=400, yaxis=dict(autorange="reversed"))
-        st.plotly_chart(fig_dept, use_container_width=True)
+        sel_dept = st.plotly_chart(fig_dept, use_container_width=True, on_select="rerun", key="fig_dept")
+        pts_dept = _pts(sel_dept)
+        if pts_dept:
+            pt = pts_dept[0]
+            dept_name = pt.get("y") or (pt.get("customdata", [None])[0])
+            if dept_name:
+                sub = filt[filt["dept"] == dept_name]
+                show_dd(sub, f"担当部局: {dept_name}")
 
-        # 担当部局テーブル
         st.dataframe(
             by_dept.rename(columns={"dept": "担当部局", "金額_oku": "金額（億円）"})
             .assign(**{"金額（億円）": lambda d: d["金額（億円）"].map("{:,.1f}".format)})
             [["担当部局", "件数", "金額（億円）"]],
-            use_container_width=True, hide_index=True
+            use_container_width=True, hide_index=True,
         )
 
-    # ── Tab3: ベンダー ────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────
+    # Tab3: ベンダー
+    # ────────────────────────────────────────────────────────────
     with tab3:
         top_n = st.slider("表示件数", 10, 50, 20, key="topn")
         top_vendors = (
@@ -360,18 +443,28 @@ def main():
             orientation="h",
             color="件数",
             color_continuous_scale="Viridis",
+            custom_data=["vendor_name"],
             labels={"金額_oku": "金額（億円）", "vendor_name": "ベンダー"},
             template=TEMPLATE,
-            title=f"ベンダー別 契約金額 TOP {top_n}",
+            title=f"ベンダー別 契約金額 TOP {top_n}　← クリックでドリルダウン",
         )
-        fig_v.update_layout(height=max(350, top_n * 22), yaxis=dict(autorange="reversed"))
-        st.plotly_chart(fig_v, use_container_width=True)
+        fig_v.update_layout(
+            height=max(350, top_n * 22),
+            yaxis=dict(autorange="reversed", tickfont=dict(size=11), automargin=True),
+            margin=dict(l=250),
+        )
+        sel_v = st.plotly_chart(fig_v, use_container_width=True, on_select="rerun", key="fig_v")
+        pts_v = _pts(sel_v)
+        if pts_v:
+            pt = pts_v[0]
+            vname = pt.get("y") or (pt.get("customdata", [None])[0])
+            if vname:
+                sub = filt[filt["vendor_name"] == vname]
+                show_dd(sub, f"ベンダー: {vname}")
 
-        if st.button("ベンダー一覧をドリルダウン表示"):
-            vendor_sel = top_vendors["vendor_name"].tolist()
-            show_dd(filt[filt["vendor_name"].isin(vendor_sel)], "ベンダーTOP 契約一覧")
-
-    # ── Tab4: 入札方式 ────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────
+    # Tab4: 入札方式
+    # ────────────────────────────────────────────────────────────
     with tab4:
         col_l, col_r = st.columns(2)
 
@@ -389,15 +482,22 @@ def main():
                 color="bid_type",
                 color_discrete_map=BID_COLOR,
                 template=TEMPLATE,
-                title="入札方式別 金額構成比",
+                title="入札方式別 金額構成比　← クリックでドリルダウン",
                 hole=0.35,
             )
             fig_pie.update_traces(
                 texttemplate="%{label}<br>%{value:.1f}億円",
-                textposition="outside"
+                textposition="outside",
             )
-            fig_pie.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_pie, use_container_width=True)
+            fig_pie.update_layout(height=420, showlegend=False)
+            sel_pie = st.plotly_chart(fig_pie, use_container_width=True, on_select="rerun", key="fig_pie")
+            pts_pie = _pts(sel_pie)
+            if pts_pie:
+                pt = pts_pie[0]
+                bt_sel = pt.get("label") or (pt.get("customdata", [None])[0])
+                if bt_sel:
+                    sub = filt[filt["bid_type"] == bt_sel]
+                    show_dd(sub, f"入札方式: {bt_sel}")
 
         with col_r:
             pie_cnt = (
@@ -412,17 +512,24 @@ def main():
                 color="bid_type",
                 color_discrete_map=BID_COLOR,
                 template=TEMPLATE,
-                title="入札方式別 件数構成比",
+                title="入札方式別 件数構成比　← クリックでドリルダウン",
                 hole=0.35,
             )
             fig_pie2.update_traces(
                 texttemplate="%{label}<br>%{value}件",
-                textposition="outside"
+                textposition="outside",
             )
-            fig_pie2.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_pie2, use_container_width=True)
+            fig_pie2.update_layout(height=420, showlegend=False)
+            sel_pie2 = st.plotly_chart(fig_pie2, use_container_width=True, on_select="rerun", key="fig_pie2")
+            pts_pie2 = _pts(sel_pie2)
+            if pts_pie2:
+                pt = pts_pie2[0]
+                bt_sel = pt.get("label") or (pt.get("customdata", [None])[0])
+                if bt_sel:
+                    sub = filt[filt["bid_type"] == bt_sel]
+                    show_dd(sub, f"入札方式: {bt_sel}")
 
-        # 随意契約 理由
+        # 随意契約 理由別棒グラフ
         if "随意契約" in filt["bid_type"].values:
             zuii_df = filt[filt["bid_type"] == "随意契約"].copy()
             zuii_df["reason_short"] = zuii_df["zuii_reason"].str.extract(
@@ -442,14 +549,24 @@ def main():
                 orientation="h",
                 color="件数",
                 color_continuous_scale="Reds",
+                custom_data=["reason_short"],
                 labels={"金額_oku": "金額（億円）", "reason_short": "随意理由"},
                 template=TEMPLATE,
-                title="随意契約 根拠条文別 金額",
+                title="随意契約 根拠条文別 金額　← クリックでドリルダウン",
             )
             fig_r.update_layout(height=350, yaxis=dict(autorange="reversed"))
-            st.plotly_chart(fig_r, use_container_width=True)
+            sel_r = st.plotly_chart(fig_r, use_container_width=True, on_select="rerun", key="fig_r")
+            pts_r = _pts(sel_r)
+            if pts_r:
+                pt = pts_r[0]
+                reason_sel = pt.get("y") or (pt.get("customdata", [None])[0])
+                if reason_sel:
+                    sub = zuii_df[zuii_df["reason_short"] == reason_sel]
+                    show_dd(sub, f"随意理由: {reason_sel}")
 
-    # ── Tab5: 契約一覧 ────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────
+    # Tab5: 契約一覧
+    # ────────────────────────────────────────────────────────────
     with tab5:
         search = st.text_input("件名・ベンダー名で検索", placeholder="キーワード入力...")
         disp_df = filt.copy()
@@ -463,16 +580,16 @@ def main():
         st.write(f"**{len(disp_df):,}件**（フィルタ後）")
 
         show_cols = {
-            "fiscal_year": "FY",
-            "contract_date": "締結日",
-            "bid_type": "入札方式",
-            "account_type": "会計",
-            "procurement_type": "種別",
-            "contract_name": "件名",
-            "vendor_name": "ベンダー",
+            "fiscal_year":     "FY",
+            "contract_date":   "締結日",
+            "bid_type":        "入札方式",
+            "account_type":    "会計",
+            "procurement_type":"種別",
+            "contract_name":   "件名",
+            "vendor_name":     "ベンダー",
             "contract_amount": "金額（円）",
-            "award_rate": "落札率",
-            "notes": "備考",
+            "award_rate":      "落札率",
+            "notes":           "備考",
         }
         show = {k: v for k, v in show_cols.items() if k in disp_df.columns}
         table = (
