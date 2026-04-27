@@ -71,6 +71,99 @@ BID_COLOR = {
     "その他":              "#9399b2",
 }
 
+# ── 政策分類（予算案4大項目・2階層） ───────────────────────────────
+# (大項目, 中項目, キーワードリスト)
+_CLASS_RULES: list[tuple[str, str, list[str]]] = [
+    # ④ 成育環境にかかわらず誰一人取り残さない ─ 中項目別に優先度高い順
+    ("④ 成育環境にかかわらず誰一人取り残さない",
+     "こどもの自殺対策",
+     ["自殺"]),
+    ("④ 成育環境にかかわらず誰一人取り残さない",
+     "障害児・医療的ケア児支援等",
+     ["障害児", "医療的ケア", "補装具", "発達の特性"]),
+    ("④ 成育環境にかかわらず誰一人取り残さない",
+     "児童虐待防止・社会的養護・ヤングケアラー支援等",
+     ["虐待", "ヤングケアラー", "社会的養護", "里親", "養子縁組", "児童相談",
+      "一時保護", "児童養護", "要保護", "アウトリーチ", "訪問支援",
+      "国立児童自立", "若者シェルター", "児童福祉司", "死亡検証"]),
+    ("④ 成育環境にかかわらず誰一人取り残さない",
+     "こどもの貧困対策・ひとり親家庭の自立促進等",
+     ["いじめ", "不登校", "ひとり親", "養育費", "貧困", "こども食堂",
+      "母子自立", "父子自立", "こどもの未来応援", "寡婦", "フードバンク",
+      "こどもの居場所", "宅食", "ひきこもり", "犯罪", "性被害",
+      "旧優生保護法", "こども性暴力", "若者総合相談", "若者支援地域"]),
+
+    # ③ 全てのこどもに健やかで安全・安心に成長できる環境の提供
+    ("③ 全てのこどもに健やかで安全・安心に成長できる環境の提供",
+     "総合的な子育て支援",
+     ["企業主導型保育", "保育士", "放課後児童", "病児保育", "子育て支援拠点",
+      "保育所", "幼稚園", "認定こども園", "保育業務", "保育実践",
+      "こども誰でも通園", "送迎用バス", "健全育成", "幼児期までのこどもの育ち",
+      "幼児教育", "地域支援体制整備", "子どもの預かりサービス"]),
+
+    # ② 結婚・妊娠・出産・子育てに夢や希望を感じられる社会の実現
+    ("② 結婚・妊娠・出産・子育てに夢や希望を感じられる社会の実現",
+     "高等教育の無償化",
+     ["修学支援", "高等教育"]),
+    ("② 結婚・妊娠・出産・子育てに夢や希望を感じられる社会の実現",
+     "妊娠期から子育て期の包括的な切れ目のない支援",
+     ["妊娠", "出産", "不妊", "産後", "伴走型", "妊婦", "ドナーミルク",
+      "出生前検査", "成育医療", "健やか親子", "乳幼児栄養", "母子保健",
+      "プレコンセプション", "生活支援特別給付金", "こどもの福祉と保健"]),
+    ("② 結婚・妊娠・出産・子育てに夢や希望を感じられる社会の実現",
+     "地域の実情や課題に応じた少子化対策",
+     ["少子化", "ライフデザイン", "結婚支援", "少子高齢化セミナー",
+      "結婚応援", "母子家庭の母"]),
+
+    # ⑤ 庁内管理・その他
+    ("⑤ 庁内管理・その他",
+     "庁内管理・その他",
+     ["賃貸借", "ビルディング", "警備", "セキュリティ", "電話交換", "乗用自動車",
+      "運行管理", "リース車", "健康診断", "新聞", "コピー用紙", "文房具", "防災用品",
+      "PMO", "ＰＭＯ", "速記", "官報", "タクシー", "行政文書", "引越", "什器",
+      "駐車場", "吸音", "テレキューブ", "叙勲", "出張", "反訳", "国会審議",
+      "ライセンス", "タブレット端末", "法令Web", "クリッピング", "切り抜き",
+      "ニュースサービス", "庁費", "情報システム", "給与", "清掃", "保守",
+      "賃借", "印刷", "メンテナンス", "料金計器", "SPIDER", "D1-Law",
+      "判例秘書", "記事利用許諾", "備品", "Wi-Fi", "扉設置", "扉増設",
+      "WEB会議", "ヘルプデスク", "業務端末", "Firewall", "会計業務"]),
+
+    # ① こどもの視点に立った司令塔機能の発揮
+    ("① こどもの視点に立った司令塔機能の発揮",
+     "こども政策DX推進・情報基盤整備",
+     ["DX", "ＤＸ", "デジタル", "システム", "データ", "基盤", "ウェブサイト",
+      "ホームページ", "EBPM", "インターネット", "WEBサイト", "アクセシビリティ",
+      "情報収集", "漫画冊子", "パンフレット", "冊子制作", "動画"]),
+    ("① こどもの視点に立った司令塔機能の発揮",
+     "こどもまんなか社会の実現・意見反映推進",
+     ["意見反映", "意識調査", "こども・若者", "ウェルビーイング", "こども政策",
+      "こどもまんなか", "こどもと若者", "自治体こども計画", "こども基本法",
+      "こどもの育ちビジョン", "こども未来戦略", "Yahoo", "霞が関見学",
+      "普及啓発", "調査研究", "こども未来戦略"]),
+    ("① こどもの視点に立った司令塔機能の発揮",
+     "広報・情報発信",
+     ["広報", "PR"]),
+]
+
+CAT_COLOR = {
+    "① こどもの視点に立った司令塔機能の発揮":                              "#7c83fd",
+    "② 結婚・妊娠・出産・子育てに夢や希望を感じられる社会の実現":           "#f38ba8",
+    "③ 全てのこどもに健やかで安全・安心に成長できる環境の提供":             "#a6e3a1",
+    "④ 成育環境にかかわらず誰一人取り残さない":                            "#fab387",
+    "⑤ 庁内管理・その他":                                                "#9399b2",
+}
+CAT_ORDER = list(CAT_COLOR.keys())
+
+
+def classify_contract(name: str | None) -> tuple[str, str]:
+    """(大項目, 中項目) を返す。マッチしない場合は ⑤ 庁内管理・その他 にフォールバック。"""
+    if not name:
+        return ("⑤ 庁内管理・その他", "庁内管理・その他")
+    for cat, subcat, keywords in _CLASS_RULES:
+        if any(kw in name for kw in keywords):
+            return (cat, subcat)
+    return ("⑤ 庁内管理・その他", "庁内管理・その他")
+
 
 def fmt_oku(v: float) -> str:
     if v >= 10_000:
@@ -105,6 +198,10 @@ def load_df() -> pd.DataFrame:
         return "その他"
     df["dept"] = df["contracting_dept"].apply(extract_dept)
 
+    cats = df["contract_name"].apply(classify_contract)
+    df["category"]    = cats.apply(lambda t: t[0])
+    df["subcategory"] = cats.apply(lambda t: t[1])
+
     return df
 
 
@@ -112,6 +209,8 @@ def load_df() -> pd.DataFrame:
 _DRILLDOWN_COLS = {
     "fiscal_year":     "FY",
     "contract_date":   "締結日",
+    "category":        "大項目",
+    "subcategory":     "中項目",
     "bid_type":        "入札方式",
     "account_type":    "会計区分",
     "procurement_type":"調達種別",
@@ -214,6 +313,8 @@ def main():
         all_proc = sorted(df["procurement_type"].unique().tolist())
         sel_proc = st.multiselect("調達種別", all_proc, default=all_proc, key="proc")
 
+        sel_cat = st.multiselect("政策分類（大項目）", CAT_ORDER, default=CAT_ORDER, key="cat")
+
         st.markdown("---")
         st.markdown("**金額下限（万円）**")
         min_amount = st.number_input("", min_value=0, value=0, step=100, label_visibility="collapsed")
@@ -223,6 +324,7 @@ def main():
         & df["bid_type"].isin(sel_bid)
         & df["account_type"].isin(sel_acc)
         & df["procurement_type"].isin(sel_proc)
+        & df["category"].isin(sel_cat)
         & (df["contract_amount"].isna() | (df["contract_amount"] >= min_amount * 10_000))
     ]
 
@@ -243,8 +345,9 @@ def main():
     st.markdown("---")
 
     # ── タブ ─────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📊 年度トレンド", "🏢 担当部局", "🏭 ベンダー", "📋 入札方式", "🔍 契約一覧", "💰 予算比較"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 年度トレンド", "🏢 担当部局", "🏭 ベンダー", "📋 入札方式",
+        "🔍 契約一覧", "💰 予算比較", "📂 政策分類",
     ])
 
     # ────────────────────────────────────────────────────────────
@@ -588,6 +691,8 @@ def main():
         show_cols = {
             "fiscal_year":     "FY",
             "contract_date":   "締結日",
+            "category":        "大項目",
+            "subcategory":     "中項目",
             "bid_type":        "入札方式",
             "account_type":    "会計",
             "procurement_type":"種別",
@@ -740,6 +845,162 @@ def main():
 - **FY2025**: 7.3兆円規模への拡大（こども金庫設置）を反映し200億と推計。DB収録額は2025年12月時点の途中データ。
 - 調達母数には閾値未満の小額契約・非公表契約は含まれていない可能性があります。
 """)
+
+
+    # ────────────────────────────────────────────────────────────
+    # Tab7: 政策分類
+    # ────────────────────────────────────────────────────────────
+    with tab7:
+        # ── 大項目別 横棒グラフ ───────────────────────────────────
+        by_cat = (
+            filt.groupby("category")
+            .agg(金額=("contract_amount", "sum"), 件数=("id", "count"))
+            .reset_index()
+        )
+        by_cat["category"] = pd.Categorical(by_cat["category"], categories=CAT_ORDER, ordered=True)
+        by_cat = by_cat.sort_values("category")
+        by_cat["金額_oku"] = by_cat["金額"] / 1e8
+
+        fig_cat = px.bar(
+            by_cat,
+            x="金額_oku",
+            y="category",
+            orientation="h",
+            color="category",
+            color_discrete_map=CAT_COLOR,
+            custom_data=["category"],
+            text="金額_oku",
+            labels={"金額_oku": "金額（億円）", "category": "大項目"},
+            template=TEMPLATE,
+            title="予算4大項目別 契約金額",
+        )
+        fig_cat.update_traces(
+            texttemplate="%{text:.1f}億",
+            textposition="outside",
+            showlegend=False,
+        )
+        fig_cat.update_layout(
+            height=360,
+            yaxis=dict(autorange="reversed", tickfont=dict(size=11), automargin=True),
+            margin=dict(l=380),
+            showlegend=False,
+        )
+        sel_cat = st.plotly_chart(fig_cat, use_container_width=True, on_select="rerun", key="fig_cat")
+        st.caption("(クリックで中項目内訳を表示)")
+        pts_cat = _pts(sel_cat)
+
+        if pts_cat:
+            pt = pts_cat[0]
+            cat_sel = pt.get("y") or (pt.get("customdata", [None])[0])
+            if cat_sel:
+                sub_df = filt[filt["category"] == cat_sel]
+
+                # 中項目別横棒グラフ（ドリルダウン）
+                by_sub = (
+                    sub_df.groupby("subcategory")
+                    .agg(金額=("contract_amount", "sum"), 件数=("id", "count"))
+                    .reset_index()
+                    .sort_values("金額", ascending=False)
+                )
+                by_sub["金額_oku"] = by_sub["金額"] / 1e8
+                fig_sub = px.bar(
+                    by_sub,
+                    x="金額_oku",
+                    y="subcategory",
+                    orientation="h",
+                    color_discrete_sequence=[CAT_COLOR.get(cat_sel, "#7c83fd")],
+                    custom_data=["subcategory"],
+                    text="金額_oku",
+                    labels={"金額_oku": "金額（億円）", "subcategory": "中項目"},
+                    template=TEMPLATE,
+                    title=f"中項目別 内訳 ── {cat_sel}",
+                )
+                fig_sub.update_traces(
+                    texttemplate="%{text:.1f}億",
+                    textposition="outside",
+                    showlegend=False,
+                )
+                fig_sub.update_layout(
+                    height=max(280, len(by_sub) * 55),
+                    yaxis=dict(autorange="reversed", automargin=True),
+                    margin=dict(l=320),
+                )
+                sel_sub = st.plotly_chart(fig_sub, use_container_width=True, on_select="rerun", key="fig_sub")
+                st.caption("(クリックで契約一覧を表示)")
+                pts_sub = _pts(sel_sub)
+                if pts_sub:
+                    pt2 = pts_sub[0]
+                    sub_sel = pt2.get("y") or (pt2.get("customdata", [None])[0])
+                    if sub_sel:
+                        show_dd(sub_df[sub_df["subcategory"] == sub_sel],
+                                f"{cat_sel} ／ {sub_sel}")
+                else:
+                    show_dd(sub_df, cat_sel)
+
+        st.markdown("---")
+
+        # ── 年度 × 大項目 積み上げ棒グラフ ──────────────────────────
+        by_fy_cat = (
+            filt.groupby(["fiscal_year", "category"])["contract_amount"]
+            .sum()
+            .reset_index()
+        )
+        by_fy_cat["amount_oku"] = by_fy_cat["contract_amount"] / 1e8
+        by_fy_cat["category"] = pd.Categorical(
+            by_fy_cat["category"], categories=CAT_ORDER, ordered=True
+        )
+        by_fy_cat = by_fy_cat.sort_values(["fiscal_year", "category"])
+
+        fig_fy_cat = px.bar(
+            by_fy_cat,
+            x="fiscal_year",
+            y="amount_oku",
+            color="category",
+            color_discrete_map=CAT_COLOR,
+            barmode="stack",
+            custom_data=["category"],
+            labels={"fiscal_year": "年度", "amount_oku": "金額（億円）", "category": "大項目"},
+            template=TEMPLATE,
+            title="年度別・大項目別 契約金額",
+            category_orders={"category": CAT_ORDER},
+        )
+        fig_fy_cat.update_layout(
+            height=400,
+            xaxis=dict(tickmode="linear", dtick=1),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        )
+        sel_fy_cat = st.plotly_chart(
+            fig_fy_cat, use_container_width=True, on_select="rerun", key="fig_fy_cat"
+        )
+        st.caption("(クリックでドリルダウン)")
+        pts_fy_cat = _pts(sel_fy_cat)
+        if pts_fy_cat:
+            pt = pts_fy_cat[0]
+            fy_sel = int(pt["x"])
+            cat_sel2 = pt.get("customdata", [None])[0]
+            sub2 = filt[filt["fiscal_year"] == fy_sel]
+            if cat_sel2:
+                sub2 = sub2[sub2["category"] == cat_sel2]
+                show_dd(sub2, f"FY{fy_sel} ／ {cat_sel2}")
+            else:
+                show_dd(sub2, f"FY{fy_sel}")
+
+        # ── 集計テーブル ─────────────────────────────────────────
+        st.markdown("### 大項目・中項目 集計")
+        tbl_sub = (
+            filt.groupby(["category", "subcategory"])
+            .agg(件数=("id", "count"), 金額=("contract_amount", "sum"))
+            .reset_index()
+        )
+        tbl_sub["category"] = pd.Categorical(tbl_sub["category"], categories=CAT_ORDER, ordered=True)
+        tbl_sub = tbl_sub.sort_values(["category", "金額"], ascending=[True, False])
+        tbl_sub["金額（億円）"] = (tbl_sub["金額"] / 1e8).map("{:,.1f}".format)
+        st.dataframe(
+            tbl_sub.rename(columns={"category": "大項目", "subcategory": "中項目"})
+            [["大項目", "中項目", "件数", "金額（億円）"]],
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
 if __name__ == "__main__":
