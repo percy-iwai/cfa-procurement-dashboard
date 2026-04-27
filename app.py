@@ -243,8 +243,8 @@ def main():
     st.markdown("---")
 
     # ── タブ ─────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 年度トレンド", "🏢 担当部局", "🏭 ベンダー", "📋 入札方式", "🔍 契約一覧"
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 年度トレンド", "🏢 担当部局", "🏭 ベンダー", "📋 入札方式", "🔍 契約一覧", "💰 予算比較"
     ])
 
     # ────────────────────────────────────────────────────────────
@@ -608,6 +608,132 @@ def main():
                 lambda x: f"{x:.3f}" if pd.notna(x) else ""
             )
         st.dataframe(table, use_container_width=True, height=560)
+
+
+    # ────────────────────────────────────────────────────────────
+    # Tab6: 予算比較
+    # ────────────────────────────────────────────────────────────
+    with tab6:
+        # 予算データ（調査結果に基づく静的値）
+        BUDGET_DF = pd.DataFrame([
+            {"fiscal_year": 2023, "歳出総額_cho": 4.8, "調達母数_oku": 100.0},
+            {"fiscal_year": 2024, "歳出総額_cho": 5.3, "調達母数_oku": 150.0},
+            {"fiscal_year": 2025, "歳出総額_cho": 7.3, "調達母数_oku": 200.0},
+        ])
+
+        # DB収録額（フィルタ前・全件）
+        db_by_fy = (
+            df.groupby("fiscal_year")["contract_amount"]
+            .sum()
+            .reset_index()
+            .rename(columns={"contract_amount": "db_total"})
+        )
+        db_by_fy["DB収録額_oku"] = db_by_fy["db_total"] / 1e8
+        db_by_fy["fiscal_year"] = db_by_fy["fiscal_year"].astype(int)
+
+        merged = BUDGET_DF.merge(
+            db_by_fy[["fiscal_year", "DB収録額_oku"]], on="fiscal_year", how="left"
+        )
+        merged["カバレッジ率"] = (
+            merged["DB収録額_oku"] / merged["調達母数_oku"] * 100
+        ).round(1)
+
+        # ── KPIカード: 歳出総額 ──────────────────────────────────
+        st.markdown("### 歳出総額（参考・年度別初期予算）")
+        kk1, kk2, kk3 = st.columns(3)
+        kk1.metric(
+            "FY2023 歳出総額", "約 4.8 兆円",
+            help="一般会計初期予算（設立初年度、2023年4月〜）",
+        )
+        kk2.metric(
+            "FY2024 歳出総額", "約 5.3 兆円",
+            help="一般会計4.15兆円（各目明細書確認値）＋年金特別会計",
+        )
+        kk3.metric(
+            "FY2025 歳出総額", "約 7.3 兆円",
+            help="こども金庫（子ども・子育て支援特別会計）新設により大幅増",
+        )
+
+        st.info(
+            "💡 歳出の97%以上は**児童手当・保育給付等の移転支出**（地方・独法等へ直接交付）。"
+            "「調達母数」は庁費・委託費・情報処理費等、こども家庭庁が直接発注する調達的経費の推計値です。"
+        )
+
+        # ── メインチャート: 調達母数 vs DB収録額 ──────────────────
+        st.markdown("### 調達母数（推計）vs DB収録額")
+
+        bar_df = pd.melt(
+            merged,
+            id_vars=["fiscal_year"],
+            value_vars=["調達母数_oku", "DB収録額_oku"],
+            var_name="区分",
+            value_name="金額（億円）",
+        )
+        bar_df["区分"] = bar_df["区分"].map({
+            "調達母数_oku": "調達母数（推計）",
+            "DB収録額_oku": "DB収録額",
+        })
+
+        fig_bgt = px.bar(
+            bar_df,
+            x="fiscal_year",
+            y="金額（億円）",
+            color="区分",
+            barmode="group",
+            text="金額（億円）",
+            color_discrete_map={
+                "調達母数（推計）": "#fab387",
+                "DB収録額":        "#7c83fd",
+            },
+            labels={"fiscal_year": "年度", "区分": ""},
+            template=TEMPLATE,
+            title="調達母数（推計）と DB収録額の比較（億円）",
+        )
+        fig_bgt.update_traces(texttemplate="%{text:.0f}億", textposition="outside")
+        fig_bgt.update_layout(
+            height=420,
+            xaxis=dict(tickmode="linear", dtick=1),
+            yaxis=dict(range=[0, 260]),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        )
+        st.plotly_chart(fig_bgt, use_container_width=True)
+
+        # ── カバレッジ表 ─────────────────────────────────────────
+        st.markdown("### カバレッジ率")
+        cov_rows = []
+        for _, r in merged.iterrows():
+            fy = int(r["fiscal_year"])
+            note = "※途中データ（〜2025年12月）" if fy == 2025 else ""
+            cov_rows.append({
+                "年度": f"FY{fy}",
+                "歳出総額（兆円）": f"{r['歳出総額_cho']:.1f}",
+                "調達母数推計（億円）": f"{r['調達母数_oku']:.0f}",
+                "DB収録額（億円）": f"{r['DB収録額_oku']:.1f}" if pd.notna(r["DB収録額_oku"]) else "—",
+                "カバレッジ率": f"{r['カバレッジ率']:.1f}%" if pd.notna(r["カバレッジ率"]) else "—",
+                "備考": note,
+            })
+        st.dataframe(pd.DataFrame(cov_rows), use_container_width=True, hide_index=True)
+
+        # ── 推計根拠 ─────────────────────────────────────────────
+        with st.expander("📄 調達母数の推計根拠（FY2024）", expanded=False):
+            st.markdown("""
+**出典**: 令和6年度内閣府所管 一般会計歳出予算各目明細書（第213回国会提出）
+
+| 項目 | 金額（概算） |
+|-----|------------|
+| 庁費・情報処理庁費・審議会庁費 | 約 27 億円 |
+| こども政策推進事業委託費 | 15.4 億円 |
+| 土地建物借料 | 9.7 億円 |
+| 各種事業委託費（母子保健・虐待防止・養育費等） | 5.6 億円 |
+| 国立施設関連（庁費・食糧費等） | 4.2 億円 |
+| **一般会計小計** | **約 62 億円** |
+| 年金特別会計分（DB実績から逆算した推計） | 約 88 億円 |
+| **合計（調達母数推計）** | **約 150 億円** |
+
+- **FY2023**: 設立初年度（4月以降）のため小規模。DB実績77.7億を基に100億と推計。
+- **FY2025**: 7.3兆円規模への拡大（こども金庫設置）を反映し200億と推計。DB収録額は2025年12月時点の途中データ。
+- 調達母数には閾値未満の小額契約・非公表契約は含まれていない可能性があります。
+""")
 
 
 if __name__ == "__main__":
