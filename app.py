@@ -885,9 +885,9 @@ def main():
             margin=dict(l=380),
             showlegend=False,
         )
-        sel_cat = st.plotly_chart(fig_cat, use_container_width=True, on_select="rerun", key="fig_cat")
+        sel_fig_cat = st.plotly_chart(fig_cat, use_container_width=True, on_select="rerun", key="fig_cat")
         st.caption("(クリックで中項目内訳を表示)")
-        pts_cat = _pts(sel_cat)
+        pts_cat = _pts(sel_fig_cat)
 
         if pts_cat:
             pt = pts_cat[0]
@@ -925,17 +925,15 @@ def main():
                     yaxis=dict(autorange="reversed", automargin=True),
                     margin=dict(l=320),
                 )
-                sel_sub = st.plotly_chart(fig_sub, use_container_width=True, on_select="rerun", key="fig_sub")
+                sel_fig_sub = st.plotly_chart(fig_sub, use_container_width=True, on_select="rerun", key="fig_sub")
                 st.caption("(クリックで契約一覧を表示)")
-                pts_sub = _pts(sel_sub)
+                pts_sub = _pts(sel_fig_sub)
                 if pts_sub:
                     pt2 = pts_sub[0]
                     sub_sel = pt2.get("y") or (pt2.get("customdata", [None])[0])
                     if sub_sel:
                         show_dd(sub_df[sub_df["subcategory"] == sub_sel],
                                 f"{cat_sel} ／ {sub_sel}")
-                else:
-                    show_dd(sub_df, cat_sel)
 
         st.markdown("---")
 
